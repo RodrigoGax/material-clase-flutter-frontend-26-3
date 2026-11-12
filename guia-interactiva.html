@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codelab: Conecta tu app Flutter a una API REST de Spring Boot</title>
+<style>
+  :root {
+    --primary: #1a73e8;
+    --primary-dark: #1557b0;
+    --accent: #ff4081;
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --text: #202124;
+    --muted: #5f6368;
+    --border: #dadce0;
+    --code-bg: #1e1e2e;
+    --code-text: #e4e4ef;
+    --ok: #188038;
+    --warn: #e37400;
+    --err: #d93025;
+    --sidebar-w: 320px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Google Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  /* ---------- Top bar ---------- */
+  header.topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 64px;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 20px; z-index: 20;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  }
+  header.topbar h1 { font-size: 18px; font-weight: 500; margin: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header.topbar .time { font-size: 13px; opacity: .9; white-space: nowrap; }
+  #menuBtn { display: none; background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+  .progress-track { position: fixed; top: 64px; left: 0; right: 0; height: 4px; background: rgba(26,115,232,.15); z-index: 20; }
+  .progress-fill { height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }
+
+  /* ---------- Sidebar ---------- */
+  nav.sidebar {
+    position: fixed; top: 68px; bottom: 0; left: 0; width: var(--sidebar-w);
+    background: var(--card); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 12px 0; z-index: 15;
+  }
+  nav.sidebar ol { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  nav.sidebar li {
+    counter-increment: step;
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 20px; cursor: pointer; font-size: 14px; color: var(--muted);
+    border-left: 4px solid transparent;
+  }
+  nav.sidebar li::before {
+    content: counter(step);
+    flex: 0 0 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+    background: #e8eaed; color: var(--muted);
+  }
+  nav.sidebar li:hover { background: #f1f3f4; }
+  nav.sidebar li.done::before { content: "✓"; background: var(--ok); color: #fff; }
+  nav.sidebar li.active { color: var(--primary); font-weight: 600; border-left-color: var(--primary); background: #e8f0fe; }
+  nav.sidebar li.active::before { background: var(--primary); color: #fff; }
+
+  /* ---------- Main ---------- */
+  main {
+    margin-left: var(--sidebar-w);
+    padding: 96px 40px 120px;
+    max-width: calc(900px + var(--sidebar-w));
+  }
+  section.step { display: none; background: var(--card); border-radius: 8px; box-shadow: 0 1px 3px rgba(60,64,67,.15); padding: 32px 40px; }
+  section.step.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  section.step h2 { margin-top: 0; font-size: 26px; font-weight: 500; }
+  section.step h3 { font-size: 19px; font-weight: 500; margin-top: 28px; color: var(--primary-dark); }
+  .duration { display: inline-block; font-size: 13px; color: var(--muted); background: #f1f3f4; border-radius: 12px; padding: 2px 12px; margin-bottom: 12px; }
+  code { font-family: "Roboto Mono", Menlo, Consolas, monospace; font-size: 0.9em; background: #f1f3f4; padding: 1px 6px; border-radius: 4px; color: #c5221f; }
+  a { color: var(--primary); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #f1f3f4; }
+
+  /* ---------- Code blocks ---------- */
+  .code-wrap { position: relative; margin: 16px 0 20px; }
+  .code-title {
+    background: #2b2b3c; color: #b4b4c8; font-size: 12px;
+    font-family: "Roboto Mono", Menlo, monospace;
+    padding: 6px 14px; border-radius: 8px 8px 0 0;
+  }
+  pre {
+    margin: 0; background: var(--code-bg); color: var(--code-text);
+    padding: 16px 18px; border-radius: 0 0 8px 8px; overflow-x: auto;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.55;
+  }
+  .code-wrap.no-title pre { border-radius: 8px; }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  .copy-btn {
+    position: absolute; top: 34px; right: 10px;
+    background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25);
+    border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+  }
+  .code-wrap.no-title .copy-btn { top: 8px; }
+  .copy-btn:hover { background: rgba(255,255,255,.25); }
+  .copy-btn.copied { background: var(--ok); border-color: var(--ok); }
+  .hl-add { background: rgba(24,128,56,.28); display: inline-block; width: 100%; }
+  .cm { color: #8b949e; font-style: italic; }
+
+  /* ---------- Callouts ---------- */
+  .callout { border-radius: 8px; padding: 14px 18px; margin: 18px 0; border-left: 5px solid; font-size: 15px; }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout.info { background: #e8f0fe; border-color: var(--primary); }
+  .callout.tip { background: #e6f4ea; border-color: var(--ok); }
+  .callout.warn { background: #fef7e0; border-color: var(--warn); }
+  .callout.err { background: #fce8e6; border-color: var(--err); }
+
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { padding: 4px 0 4px 30px; position: relative; }
+  .checklist li::before { content: "☐"; position: absolute; left: 4px; color: var(--primary); font-size: 18px; line-height: 1.4; }
+
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 20px 0; }
+  .flow .node { background: #e8f0fe; border: 1px solid #aecbfa; border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: 500; }
+  .flow .arrow { color: var(--muted); font-size: 20px; }
+
+  .stack-demo { display: flex; gap: 24px; flex-wrap: wrap; margin: 16px 0; }
+  .stack { border: 2px dashed var(--border); border-radius: 8px; padding: 10px; width: 220px; }
+  .stack .label { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 6px; }
+  .stack .card { border-radius: 6px; padding: 8px; text-align: center; margin-top: 6px; font-size: 14px; font-weight: 500; }
+  .card.login { background: #fce4ec; }
+  .card.products { background: #e6f4ea; }
+  .card.gone { background: #f1f3f4; color: #9aa0a6; text-decoration: line-through; }
+
+  .terminal-err {
+    background: #2b1b1b; color: #ffb4ab; font-family: "Roboto Mono", Menlo, monospace;
+    font-size: 13px; padding: 14px 16px; border-radius: 8px; white-space: pre-wrap; margin: 12px 0;
+  }
+
+  /* ---------- Bottom nav ---------- */
+  .nav-buttons {
+    position: fixed; bottom: 0; left: var(--sidebar-w); right: 0;
+    background: var(--card); border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 40px; z-index: 15;
+  }
+  .nav-buttons button {
+    border: none; border-radius: 6px; padding: 10px 22px; font-size: 15px; cursor: pointer; font-weight: 500;
+  }
+  #prevBtn { background: #f1f3f4; color: var(--text); }
+  #nextBtn { background: var(--primary); color: #fff; }
+  #nextBtn:hover { background: var(--primary-dark); }
+  .nav-buttons button:disabled { opacity: .4; cursor: default; }
+  #stepCounter { font-size: 14px; color: var(--muted); }
+
+  @media (max-width: 900px) {
+    #menuBtn { display: block; }
+    nav.sidebar { transform: translateX(-100%); transition: transform .25s; box-shadow: 2px 0 8px rgba(0,0,0,.2); }
+    nav.sidebar.open { transform: none; }
+    main { margin-left: 0; padding: 90px 14px 110px; }
+    section.step { padding: 22px 18px; }
+    .nav-buttons { left: 0; padding: 12px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button id="menuBtn" aria-label="Abrir menú">☰</button>
+  <h1>🐻 Codelab: Conecta tu app Flutter + Firebase a una API REST de Spring Boot</h1>
+  <span class="time" id="timeLeft"></span>
+</header>
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<nav class="sidebar" id="sidebar"><ol id="stepList"></ol></nav>
+
+<main id="content">
+
+<!-- ===================================================== -->
+<section class="step" data-title="Introducción" data-min="5">
+  <h2>Introducción: ¿qué vas a construir?</h2>
+  <span class="duration">⏱ 5 min</span>
+
+  <p>En este codelab vas a conectar dos proyectos que ya conoces:</p>
+  <ul>
+    <li><strong>Frontend (Flutter):</strong> la app <code>login_bear_animation</code> con el osito animado en Rive.</li>
+    <li><strong>Backend (Spring Boot):</strong> la API <code>market-backend</code> que expone los productos guardados en PostgreSQL.</li>
+  </ul>
+  <p>Al terminar, tu app hará este recorrido completo:</p>
+
+  <div class="flow">
+    <span class="node">✍️ Usuario escribe correo y contraseña</span><span class="arrow">→</span>
+    <span class="node">⏳ CircularProgressIndicator</span><span class="arrow">→</span>
+    <span class="node">🔐 Firebase Auth valida</span><span class="arrow">→</span>
+    <span class="node">🐻 Osito celebra</span><span class="arrow">→</span>
+    <span class="node">🧭 Navigator cambia de pantalla</span><span class="arrow">→</span>
+    <span class="node">🌐 GET /products a Spring Boot</span><span class="arrow">→</span>
+    <span class="node">📋 Lista de productos</span>
+  </div>
+
+  <h3>Lo que aprenderás</h3>
+  <ul>
+    <li>Cómo levantar y probar una API REST de Spring Boot.</li>
+    <li>Cómo inicializar Firebase en Flutter de forma segura (sin subir tus llaves a GitHub).</li>
+    <li>Qué es la <strong>asincronía</strong> en Dart: <code>Future</code>, <code>async</code> y <code>await</code>.</li>
+    <li>Cómo moverte entre pantallas con <code>Navigator</code>.</li>
+    <li>Cómo hacer una petición HTTP y convertir (parsear) el JSON que responde el servidor.</li>
+    <li>Qué es <strong>CORS</strong>, por qué bloquea tu app y cómo arreglarlo en Spring Boot.</li>
+  </ul>
+
+  <h3>Lo que ya debes tener (de la clase de hoy)</h3>
+  <ul class="checklist">
+    <li>Un proyecto creado en <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a>.</li>
+    <li>Tu app Web <code>&lt;/&gt;</code> registrada y los 4 valores: <code>apiKey</code>, <code>appId</code>, <code>messagingSenderId</code>, <code>projectId</code>.</li>
+    <li>Authentication habilitado con <strong>Correo electrónico/contraseña</strong> y un usuario de prueba creado.</li>
+    <li>El proyecto <code>market-backend</code> abierto en IntelliJ IDEA y PostgreSQL instalado.</li>
+    <li>El proyecto de Flutter del osito funcionando.</li>
+  </ul>
+
+  <div class="callout warn">
+    <strong>⚠️ Ojo con la contraseña del usuario de prueba</strong>
+    Tu Login valida con Regex que la contraseña tenga mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 símbolo. Si el usuario que creaste en Firebase tiene una contraseña más simple (ej. <code>123456</code>), el osito te rechazará <em>antes</em> de llegar a Firebase. Usa algo como <code>Hola1234!</code>.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Levantar Spring Boot" data-min="8">
+  <h2>Levanta el servidor de Spring Boot</h2>
+  <span class="duration">⏱ 8 min</span>
+
+  <p>Antes de que Flutter pueda pedir datos, <strong>el backend tiene que estar encendido</strong>. Piensa en el backend como un restaurante: si la cocina está cerrada, no importa qué tan bonito sea el menú (la app), nadie recibe comida.</p>
+
+  <h3>1. Revisa la configuración del servidor</h3>
+  <p>Abre <code>src/main/resources/application.properties</code>. Aquí se indica qué perfil usar:</p>
+  <div class="code-wrap">
+    <div class="code-title">src/main/resources/application.properties</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>spring.application.name=market-backend-2026-3-a
+
+spring.profiles.active=dev</code></pre>
+  </div>
+
+  <p>Como el perfil activo es <code>dev</code>, Spring Boot lee también <code>application-dev.properties</code>:</p>
+  <div class="code-wrap">
+    <div class="code-title">src/main/resources/application-dev.properties</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>server.port=8090
+
+spring.datasource.url=jdbc:postgresql://localhost:5432/market-app-a-26-2
+spring.datasource.username=postgres
+spring.datasource.password=TU_PASSWORD
+spring.datasource.driver-class-name=org.postgresql.Driver</code></pre>
+  </div>
+
+  <div class="callout info">
+    <strong>📌 Dato clave #1: el puerto</strong>
+    <code>server.port=8090</code> significa que tu API vive en <code>http://localhost:<strong>8090</strong></code>. Este número lo vas a escribir más adelante en Flutter. Si no coinciden, la app nunca encontrará al servidor.
+  </div>
+
+  <div class="callout err">
+    <strong>🔒 Seguridad: no subas este archivo a GitHub</strong>
+    <code>application-dev.properties</code> contiene la contraseña de tu base de datos. Verifica que tu <code>.gitignore</code> del backend tenga una regla como:
+    <br><code>application-*.properties</code>
+  </div>
+
+  <h3>2. Enciende PostgreSQL y ejecuta la app</h3>
+  <ol>
+    <li>Asegúrate de que PostgreSQL esté corriendo y que exista la base de datos <code>market-app-a-26-2</code>.</li>
+    <li>En IntelliJ IDEA abre <code>MarketBackend20263AApplication.java</code>.</li>
+    <li>Presiona el botón verde ▶ <strong>Run</strong>.</li>
+    <li>Espera a ver en la consola un mensaje parecido a este:</li>
+  </ol>
+  <div class="code-wrap no-title">
+    <button class="copy-btn">Copiar</button>
+<pre><code>Tomcat started on port 8090 (http) with context path '/'
+Started MarketBackend20263AApplication in 4.2 seconds</code></pre>
+  </div>
+  <div class="callout tip">
+    <strong>✅ Listo</strong>
+    Si ves <code>Tomcat started on port 8090</code>, tu cocina está abierta. <strong>No cierres IntelliJ</strong> mientras pruebas la app de Flutter.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Probar el endpoint" data-min="7">
+  <h2>Prueba el endpoint de productos</h2>
+  <span class="duration">⏱ 7 min</span>
+
+  <p>Antes de escribir una sola línea en Flutter, comprueba que la API responde. Así, si algo falla después, sabrás que el problema está en la app y no en el servidor.</p>
+
+  <h3>¿Qué endpoint vamos a consumir?</h3>
+  <p>En <code>ProductController.java</code> está definido así:</p>
+  <div class="code-wrap">
+    <div class="code-title">web/controller/ProductController.java (fragmento)</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>@RestController
+@RequestMapping("/products")
+public class ProductController {
+
+    @GetMapping("")
+    public ResponseEntity&lt;List&lt;Product&gt;&gt; getAll(){
+        return new ResponseEntity&lt;&gt;(productService.getAll(), HttpStatus.OK);
+    }
+}</code></pre>
+  </div>
+  <p>Juntando las piezas: <code>http://localhost:8090</code> + <code>/products</code> = <strong><code>http://localhost:8090/products</code></strong></p>
+
+  <h3>Opción A: desde el navegador (lo más rápido)</h3>
+  <p>Abre Chrome y pega en la barra de direcciones:</p>
+  <div class="code-wrap no-title">
+    <button class="copy-btn">Copiar</button>
+<pre><code>http://localhost:8090/products</code></pre>
+  </div>
+
+  <h3>Opción B: desde Postman</h3>
+  <ol>
+    <li>Abre Postman → <strong>New</strong> → <strong>HTTP Request</strong>.</li>
+    <li>Elige el método <code>GET</code>.</li>
+    <li>Escribe la URL <code>http://localhost:8090/products</code>.</li>
+    <li>Presiona <strong>Send</strong>. Debes ver <code>Status: 200 OK</code>.</li>
+  </ol>
+
+  <h3>Opción C (bonus): Swagger</h3>
+  <p>El proyecto incluye <code>springdoc-openapi</code>, así que también puedes abrir <code>http://localhost:8090/swagger-ui/index.html</code> y probar el endpoint con el botón <strong>Try it out</strong>.</p>
+
+  <h3>¿Qué deberías ver?</h3>
+  <p>Una lista (corchetes <code>[ ]</code>) de objetos (llaves <code>{ }</code>). Cada objeto es un producto:</p>
+  <div class="code-wrap">
+    <div class="code-title">Respuesta JSON de GET /products</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>[
+  {
+    "productId": 1,
+    "name": "Guayaba",
+    "categoryId": 1,
+    "price": 300.0,
+    "stock": 500,
+    "active": true,
+    "category": {
+      "categoryId": 1,
+      "category": "Frutas y verduras",
+      "active": true
+    }
+  },
+  {
+    "productId": 2,
+    "name": "Mango",
+    ...
+  }
+]</code></pre>
+  </div>
+
+  <div class="callout info">
+    <strong>📌 Dato clave #2: los nombres de las propiedades</strong>
+    Fíjate bien en las llaves del JSON: <code>"name"</code>, <code>"price"</code>, <code>"stock"</code>. Salen de los <em>getters</em> de la clase <code>Product.java</code> (<code>getName()</code>, <code>getPrice()</code>, <code>getStock()</code>). En Flutter tendrás que escribirlas <strong>exactamente igual</strong> (mayúsculas y minúsculas incluidas).
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Dependencias en pubspec.yaml" data-min="5">
+  <h2>Agrega las dependencias en <code>pubspec.yaml</code></h2>
+  <span class="duration">⏱ 5 min</span>
+
+  <p>Ahora pasamos a Flutter. Flutter no trae Firebase ni un cliente HTTP "de fábrica"; hay que pedírselos a <a href="https://pub.dev" target="_blank">pub.dev</a>, el "Play Store" de paquetes de Dart.</p>
+
+  <p>Abre <code>pubspec.yaml</code> y agrega las 3 líneas resaltadas debajo de <code>rive</code>:</p>
+  <div class="code-wrap">
+    <div class="code-title">pubspec.yaml</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  rive: ^0.13.20
+<span class="hl-add">  firebase_core: ^3.12.1</span>
+<span class="hl-add">  firebase_auth: ^5.5.1</span>
+<span class="hl-add">  http: ^1.3.0</span></code></pre>
+  </div>
+
+  <table>
+    <tr><th>Paquete</th><th>¿Para qué sirve?</th></tr>
+    <tr><td><code>firebase_core</code></td><td>Es la "llave de encendido": conecta tu app con tu proyecto de Firebase. Todos los demás paquetes de Firebase lo necesitan.</td></tr>
+    <tr><td><code>firebase_auth</code></td><td>Permite iniciar sesión con correo y contraseña contra los usuarios que creaste en Authentication.</td></tr>
+    <tr><td><code>http</code></td><td>Permite hacer peticiones <code>GET</code>, <code>POST</code>, etc. a cualquier API REST, como tu Spring Boot.</td></tr>
+  </table>
+
+  <div class="callout warn">
+    <strong>⚠️ La indentación importa</strong>
+    YAML usa espacios (no tabs). Las 3 líneas nuevas deben tener exactamente <strong>2 espacios</strong> al inicio, igual que <code>rive</code>.
+  </div>
+
+  <p>Guarda el archivo (VS Code suele descargar todo solo) o ejecuta en la terminal, dentro de la carpeta del proyecto:</p>
+  <div class="code-wrap no-title">
+    <button class="copy-btn">Copiar</button>
+<pre><code>flutter pub get</code></pre>
+  </div>
+  <div class="callout tip">
+    <strong>✅ Listo</strong>
+    Si la terminal termina con <code>Got dependencies!</code> o <code>Changed X dependencies!</code>, ya puedes usar los 3 paquetes.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="firebase_options.dart" data-min="5">
+  <h2>Guarda tus llaves en <code>firebase_options.dart</code></h2>
+  <span class="duration">⏱ 5 min</span>
+
+  <p>En clase obtuviste 4 valores de Firebase Console. En lugar de pegarlos directamente en <code>main.dart</code>, los guardaremos en un <strong>archivo aparte</strong>. ¿Por qué? Porque así lo podemos esconder de GitHub, igual que hicimos con <code>application-dev.properties</code> en el backend.</p>
+
+  <h3>1. Crea el archivo</h3>
+  <p>Dentro de la carpeta <code>lib/</code>, crea un archivo nuevo llamado <code>firebase_options.dart</code> y pega lo siguiente, <strong>reemplazando los textos por tus valores reales</strong>:</p>
+  <div class="code-wrap">
+    <div class="code-title">lib/firebase_options.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>import 'package:firebase_core/firebase_core.dart';
+
+<span class="cm">// Credenciales del proyecto de Firebase (Este archivo se ignora en .gitignore)</span>
+const FirebaseOptions firebaseOptions = FirebaseOptions(
+  apiKey: 'PEGAR_API_KEY_AQUI',
+  appId: 'PEGAR_APP_ID_AQUI',
+  messagingSenderId: 'PEGAR_SENDER_ID_AQUI',
+  projectId: 'PEGAR_PROJECT_ID_AQUI',
+);</code></pre>
+  </div>
+
+  <div class="callout info">
+    <strong>📌 ¿De dónde saco cada valor?</strong>
+    Firebase te mostró un bloque en JavaScript (<code>const firebaseConfig = {...}</code>). <strong>No copies todo el bloque</strong>, solo el texto que está entre comillas de estas 4 propiedades. Las demás (<code>authDomain</code>, <code>storageBucket</code>, <code>measurementId</code>) no las necesitamos.
+  </div>
+
+  <p><strong>¿Qué es esto?</strong> <code>firebaseOptions</code> es una <em>constante</em> (<code>const</code>) de tipo <code>FirebaseOptions</code>: un "paquete" con tus 4 datos que luego le entregaremos a Firebase en <code>main.dart</code>.</p>
+
+  <h3>2. Escóndelo de GitHub</h3>
+  <p>Abre el <code>.gitignore</code> de tu proyecto Flutter y agrega al final:</p>
+  <div class="code-wrap">
+    <div class="code-title">.gitignore</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code># Firebase credentials (No subir llaves al repositorio)
+lib/firebase_options.dart
+**/google-services.json
+**/GoogleService-Info.plist</code></pre>
+  </div>
+  <div class="callout warn">
+    <strong>⚠️ Si ya lo habías subido...</strong>
+    <code>.gitignore</code> solo ignora archivos que Git todavía no rastrea. Si ya hiciste commit de <code>firebase_options.dart</code>, ejecuta <code>git rm --cached lib/firebase_options.dart</code> y vuelve a hacer commit.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Inicializar Firebase en main.dart" data-min="8">
+  <h2>Inicializa Firebase en <code>main.dart</code></h2>
+  <span class="duration">⏱ 8 min</span>
+
+  <p>Firebase debe "encenderse" <strong>una sola vez</strong>, antes de que se dibuje cualquier pantalla. El mejor lugar es la función <code>main()</code>, el punto de arranque de toda app de Flutter.</p>
+
+  <h3>Código completo</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/main.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>import 'package:flutter/material.dart';
+<span class="hl-add">import 'package:firebase_core/firebase_core.dart';</span>
+<span class="hl-add">import 'firebase_options.dart';</span>
+import 'screens/login_screen.dart';
+
+<span class="hl-add">Future&lt;void&gt; main() async {</span>
+<span class="hl-add">  // Encender el puente nativo antes de usar Firebase</span>
+<span class="hl-add">  WidgetsFlutterBinding.ensureInitialized();</span>
+<span class="hl-add"></span>
+<span class="hl-add">  // Inicializar Firebase usando las credenciales de firebase_options.dart</span>
+<span class="hl-add">  await Firebase.initializeApp(options: firebaseOptions);</span>
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Flutter Demo',
+      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
+      home: const LoginScreen(),
+    );
+  }
+}</code></pre>
+  </div>
+
+  <h3>Línea por línea</h3>
+  <table>
+    <tr><th>Código</th><th>Explicación</th></tr>
+    <tr><td><code>import 'firebase_options.dart';</code></td><td>Trae la constante <code>firebaseOptions</code> que creaste en el paso anterior.</td></tr>
+    <tr><td><code>Future&lt;void&gt; main() async</code></td><td>Antes era <code>void main()</code>. Ahora es <strong>asíncrona</strong> porque dentro vamos a <em>esperar</em> a Firebase. (Lo explicamos a fondo más adelante.)</td></tr>
+    <tr><td><code>WidgetsFlutterBinding.ensureInitialized();</code></td><td>Enciende el "puente" entre Dart y el sistema operativo (Android/iOS/Web). Normalmente lo hace <code>runApp()</code>, pero como Firebase se ejecuta <em>antes</em>, hay que encenderlo manualmente.</td></tr>
+    <tr><td><code>await Firebase.initializeApp(options: firebaseOptions);</code></td><td>Conecta la app con <strong>tu</strong> proyecto de Firebase usando tus 4 llaves. El <code>await</code> hace que la app <em>espere</em> a que termine antes de seguir.</td></tr>
+    <tr><td><code>runApp(const MyApp());</code></td><td>Ya con Firebase listo, dibuja la app (empezando por <code>LoginScreen</code>).</td></tr>
+  </table>
+
+  <div class="callout tip">
+    <strong>🚗 Analogía</strong>
+    <code>ensureInitialized()</code> es girar la llave para encender el tablero del auto; <code>Firebase.initializeApp()</code> es conectar el GPS; <code>runApp()</code> es arrancar el motor y empezar a manejar. Si intentas conectar el GPS sin tablero encendido, Flutter truena con el error <em>"Binding has not yet been initialized"</em>.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Asincronía: Future, async y await" data-min="10">
+  <h2>Entendiendo la asincronía: <code>Future</code>, <code>async</code> y <code>await</code></h2>
+  <span class="duration">⏱ 10 min</span>
+
+  <p>Antes de tocar el Login, necesitas entender el concepto más importante de este codelab. Hablar con Firebase o con Spring Boot <strong>tarda</strong>: los datos viajan por la red. Puede tardar 50 milisegundos o 5 segundos.</p>
+
+  <h3>El problema</h3>
+  <p>Si Flutter se quedara "congelado" esperando la respuesta, tu app dejaría de responder: el osito no se movería, los botones no funcionarían y el sistema podría mostrar "La app no responde". Por eso Dart usa <strong>programación asíncrona</strong>.</p>
+
+  <h3>🍔 Analogía: el restaurante de comida rápida</h3>
+  <ol>
+    <li>Pides una hamburguesa y te dan un <strong>ticket con número</strong>. Ese ticket es un <code>Future</code>: una <em>promesa</em> de que "en el futuro" tendrás tu hamburguesa (o te dirán que se acabó).</li>
+    <li>Mientras esperas, puedes revisar tu celular. La app sigue dibujando la pantalla y animando al osito.</li>
+    <li>Cuando gritan tu número, recoges tu comida. Eso es <code>await</code>: "aquí me espero hasta que el ticket esté listo y entonces tomo el resultado".</li>
+  </ol>
+
+  <h3>Las 3 palabras clave</h3>
+  <table>
+    <tr><th>Palabra</th><th>Significado</th><th>Ejemplo en nuestro proyecto</th></tr>
+    <tr><td><code>Future&lt;T&gt;</code></td><td>Un valor de tipo <code>T</code> que llegará <strong>después</strong>. <code>Future&lt;void&gt;</code> = "terminará después, pero no devuelve nada".</td><td><code>Future&lt;List&lt;dynamic&gt;&gt; fetchProducts()</code> → "algún día te daré una lista".</td></tr>
+    <tr><td><code>async</code></td><td>Se pone en la firma de la función. Le avisa a Dart: "dentro de esta función voy a usar <code>await</code>". Toda función <code>async</code> devuelve un <code>Future</code>.</td><td><code>Future&lt;void&gt; _onLogin() async { ... }</code></td></tr>
+    <tr><td><code>await</code></td><td>Pausa <strong>solo esa función</strong> (no toda la app) hasta que el <code>Future</code> se complete, y te entrega el valor.</td><td><code>final response = await http.get(...);</code></td></tr>
+  </table>
+
+  <h3>Comparación: sin <code>await</code> vs. con <code>await</code></h3>
+  <div class="code-wrap">
+    <div class="code-title">❌ Sin await (incorrecto)</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>final response = http.get(Uri.parse('$baseUrl/products'));
+<span class="cm">// response NO es la respuesta, es el "ticket" (Future&lt;Response&gt;)</span>
+print(response.statusCode); <span class="cm">// ERROR: Future no tiene statusCode</span></code></pre>
+  </div>
+  <div class="code-wrap">
+    <div class="code-title">✅ Con await (correcto)</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>final response = await http.get(Uri.parse('$baseUrl/products'));
+<span class="cm">// Ahora sí: response es la respuesta real (Response)</span>
+print(response.statusCode); <span class="cm">// 200</span></code></pre>
+  </div>
+
+  <h3>¿Y si algo sale mal? <code>try / catch</code></h3>
+  <p>Un <code>Future</code> puede terminar con <strong>éxito</strong> o con <strong>error</strong> (contraseña incorrecta, sin internet, servidor apagado...). Para atrapar esos errores usamos <code>try / catch</code>:</p>
+  <div class="code-wrap no-title">
+    <button class="copy-btn">Copiar</button>
+<pre><code>try {
+  await algoQueTarda();   <span class="cm">// si funciona, sigue aquí abajo</span>
+  print('¡Éxito!');
+} catch (e) {
+  print('Falló: $e');     <span class="cm">// si falla, salta directo aquí</span>
+}</code></pre>
+  </div>
+
+  <div class="callout info">
+    <strong>📌 Regla de oro</strong>
+    Si usas <code>await</code> dentro de una función, esa función <strong>debe</strong> llevar <code>async</code>. Y si la función es <code>async</code>, su tipo de retorno <strong>debe</strong> ser <code>Future&lt;...&gt;</code>.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Login: Firebase + loading" data-min="12">
+  <h2>Login con Firebase y CircularProgressIndicator (pasos 5.1 – 5.5)</h2>
+  <span class="duration">⏱ 12 min</span>
+
+  <p>Abre <code>lib/screens/login_screen.dart</code>. Vamos a continuar con la numeración que ya traías (1.x a 4.x), ahora con los pasos <strong>5.x</strong>.</p>
+
+  <h3>5.1 Importar Firebase Auth y la pantalla de productos</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart (inicio del archivo)</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>import 'package:flutter/material.dart';
+import 'package:rive/rive.dart';
+import 'dart:async'; //3.1 Importar el timer
+<span class="hl-add">//5.1 Importar Firebase Auth y la pantalla de productos</span>
+<span class="hl-add">import 'package:firebase_auth/firebase_auth.dart';</span>
+<span class="hl-add">import 'products_screen.dart';</span></code></pre>
+  </div>
+  <div class="callout warn">
+    <strong>⚠️ Marcará error en rojo</strong>
+    <code>products_screen.dart</code> todavía no existe. Créalo vacío ahora dentro de <code>lib/screens/</code> (lo llenaremos más adelante) o ignora el error por el momento.
+  </div>
+
+  <h3>5.2 Variable para el indicador de carga</h3>
+  <p>Debajo de <code>//4.2</code> agrega una bandera que diga si estamos "cargando":</p>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>  //4.2 Errores para mostrarlo en la UI
+  String? emailError;
+  String? passError;
+
+<span class="hl-add">  //5.2 Variable para mostrar el CircularProgressIndicator mientras carga</span>
+<span class="hl-add">  bool _isLoading = false;</span></code></pre>
+  </div>
+
+  <h3>5.3 Convertir <code>_onLogin</code> en asíncrono</h3>
+  <p>Como ahora vamos a <em>esperar</em> a Firebase, cambia la firma de la función:</p>
+  <div class="code-wrap">
+    <div class="code-title">Antes → Después</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code><span class="cm">// ANTES</span>
+void _onLogin() {
+
+<span class="cm">// DESPUÉS</span>
+<span class="hl-add">  //4.4 Dar acción al botón</span>
+<span class="hl-add">  //5.3 Convertir _onLogin en asíncrono (Future&lt;void&gt; ... async)</span>
+<span class="hl-add">  Future&lt;void&gt; _onLogin() async {</span></code></pre>
+  </div>
+
+  <h3>4.9 (modificado) Detener si el formato es inválido</h3>
+  <p>Antes, el paso 4.9 disparaba éxito o fallo. Ahora solo dispara el fallo y <strong>se detiene</strong> con <code>return</code>; el éxito lo decidirá Firebase:</p>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>    //4.9 Si algún campo tiene formato inválido, activar fallo y detener aquí
+    if (eError != null || pError != null) {
+      _trigFail?.fire();
+      return;
+    }</code></pre>
+  </div>
+
+  <h3>5.4 Encender el indicador de carga</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>    //5.4 Activar el CircularProgressIndicator
+    setState(() {
+      _isLoading = true;
+    });</code></pre>
+  </div>
+  <p><code>setState</code> le avisa a Flutter: "cambió una variable, vuelve a dibujar la pantalla". Así el botón mostrará el circulito girando.</p>
+
+  <h3>5.5 Autenticar con Firebase</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>    try {
+      //5.5 Autenticar usuario en Firebase (esperamos un par de segundos para ver el loading)
+      await Future.delayed(const Duration(seconds: 2));
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: pass,
+      );</code></pre>
+  </div>
+  <ul>
+    <li><code>Future.delayed(...)</code>: un <code>Future</code> que solo "espera" 2 segundos. Lo usamos para que alcances a ver el <code>CircularProgressIndicator</code> (en una app real lo quitarías).</li>
+    <li><code>FirebaseAuth.instance</code>: el objeto único de autenticación de tu app.</li>
+    <li><code>signInWithEmailAndPassword</code>: envía correo y contraseña a Firebase. Si son correctos, continúa a la siguiente línea; si no, <strong>lanza una excepción</strong> y salta al <code>catch</code>.</li>
+  </ul>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Login: osito + Navigator" data-min="15">
+  <h2>Animación del osito y navegación con Navigator (pasos 5.6 – 5.9)</h2>
+  <span class="duration">⏱ 15 min</span>
+
+  <h3>5.6 Apagar loading, celebrar y esperar la animación</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>      //5.6 Apagar loading, disparar éxito del osito y esperar a que termine su animación
+      setState(() {
+        _isLoading = false;
+      });
+      _trigSuccess?.fire();
+      await Future.delayed(const Duration(seconds: 2));</code></pre>
+  </div>
+  <p>Si cambiáramos de pantalla inmediatamente después de <code>_trigSuccess?.fire()</code>, el osito desaparecería a mitad del festejo. Con <code>await Future.delayed(...)</code> le damos 2 segundos para terminar su animación.</p>
+
+  <h3>🧭 ¿Qué es <code>Navigator</code>? (¡Primera vez!)</h3>
+  <p>En Flutter, cada pantalla es un widget, y las pantallas se acomodan como una <strong>pila de platos</strong> (en inglés <em>stack</em>). El <code>Navigator</code> es quien administra esa pila:</p>
+  <table>
+    <tr><th>Método</th><th>¿Qué hace con la pila?</th><th>¿Cuándo usarlo?</th></tr>
+    <tr><td><code>Navigator.push</code></td><td>Pone una pantalla nueva <strong>encima</strong>. La anterior sigue debajo.</td><td>Ir a "Registro" o "Detalle de producto": el usuario puede regresar con la flecha ←.</td></tr>
+    <tr><td><code>Navigator.pop</code></td><td><strong>Quita</strong> la pantalla de arriba y regresa a la de abajo.</td><td>Botón "Regresar" o "Cancelar".</td></tr>
+    <tr><td><code>Navigator.pushReplacement</code></td><td><strong>Reemplaza</strong> la pantalla actual por la nueva. La anterior se destruye.</td><td><strong>Después de un login</strong>: no queremos que el usuario regrese al Login con la flecha ←.</td></tr>
+  </table>
+
+  <div class="stack-demo">
+    <div class="stack">
+      <div class="label">Con <code>push</code></div>
+      <div class="card products">ProductsScreen (arriba)</div>
+      <div class="card login">LoginScreen (sigue abajo)</div>
+      <div class="label" style="margin-top:8px">← regresa al Login 😕</div>
+    </div>
+    <div class="stack">
+      <div class="label">Con <code>pushReplacement</code> ✅</div>
+      <div class="card products">ProductsScreen (única)</div>
+      <div class="card gone">LoginScreen (destruida)</div>
+      <div class="label" style="margin-top:8px">← no hay a dónde regresar 👍</div>
+    </div>
+  </div>
+
+  <h3>5.7 Navegar a la pantalla de productos</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>      //5.7 Navegar a la pantalla de productos de Spring Boot
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) =&gt; const ProductsScreen()),
+      );</code></pre>
+  </div>
+  <table>
+    <tr><th>Pieza</th><th>Explicación</th></tr>
+    <tr><td><code>if (!mounted) return;</code></td><td>Pasaron ~4 segundos desde que tocaste el botón. ¿Y si el usuario cerró la pantalla en ese tiempo? <code>mounted</code> es <code>true</code> si la pantalla <strong>sigue viva</strong>. Si ya no existe, salimos para evitar un error. <strong>Siempre</strong> revísalo antes de usar <code>context</code> después de un <code>await</code>.</td></tr>
+    <tr><td><code>context</code></td><td>La "dirección" de este widget dentro del árbol de la app. El <code>Navigator</code> lo usa para saber <em>desde dónde</em> estás navegando.</td></tr>
+    <tr><td><code>MaterialPageRoute</code></td><td>La "ruta" o transición hacia la nueva pantalla, con la animación estándar de Android/iOS.</td></tr>
+    <tr><td><code>builder: (_) =&gt; const ProductsScreen()</code></td><td>Una función que <strong>construye</strong> la pantalla destino. El <code>_</code> es el <code>context</code> de la nueva ruta, que aquí no usamos.</td></tr>
+  </table>
+
+  <h3>5.8 Si Firebase rechaza el login</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>    } catch (e) {
+      //5.8 Si Firebase rechaza el login, apagar loading y mostrar al osito triste
+      setState(() {
+        _isLoading = false;
+        passError = "Credenciales incorrectas en Firebase";
+      });
+      _trigFail?.fire();
+    }
+  }</code></pre>
+  </div>
+  <p>Si la contraseña es incorrecta o el usuario no existe, <code>signInWithEmailAndPassword</code> lanza un error, el código salta aquí, se apaga el circulito y el osito se pone triste.</p>
+
+  <h3>📄 Así queda <code>_onLogin</code> completo</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart — método _onLogin()</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>  //4.4 Dar acción al botón
+  //5.3 Convertir _onLogin en asíncrono (Future&lt;void&gt; ... async)
+  Future&lt;void&gt; _onLogin() async {
+    //4.5 De lo que escribió el usuario, quitar espacios en blanco
+    final email = _emailCtrl.text.trim();
+    final pass = _passCtrl.text;
+
+    //4.6 Evaluar los errores
+    final eError = isValidEmail(email) ? null : "Invalid email";
+    final pError = isValidPassword(pass) ? null : "Invalid password";
+
+    //4.7 Avisar que hubo cambios
+    setState(() {
+      emailError = eError;
+      passError = pError;
+    });
+
+    //4.8 Cerrar el teclado y bajar las manos
+    FocusScope.of(context).unfocus(); //Quita el foco
+    _typingDebounce?.cancel();
+    _isChecking?.change(false);
+    _isHandsUp?.change(false);
+    _numLook?.value = 50.0;
+
+    //4.9 Si algún campo tiene formato inválido, activar fallo y detener aquí
+    if (eError != null || pError != null) {
+      _trigFail?.fire();
+      return;
+    }
+
+    //5.4 Activar el CircularProgressIndicator
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      //5.5 Autenticar usuario en Firebase (esperamos un par de segundos para ver el loading)
+      await Future.delayed(const Duration(seconds: 2));
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: pass,
+      );
+
+      //5.6 Apagar loading, disparar éxito del osito y esperar a que termine su animación
+      setState(() {
+        _isLoading = false;
+      });
+      _trigSuccess?.fire();
+      await Future.delayed(const Duration(seconds: 2));
+
+      //5.7 Navegar a la pantalla de productos de Spring Boot
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) =&gt; const ProductsScreen()),
+      );
+    } catch (e) {
+      //5.8 Si Firebase rechaza el login, apagar loading y mostrar al osito triste
+      setState(() {
+        _isLoading = false;
+        passError = "Credenciales incorrectas en Firebase";
+      });
+      _trigFail?.fire();
+    }
+  }</code></pre>
+  </div>
+
+  <h3>5.9 Mostrar el CircularProgressIndicator en el botón</h3>
+  <p>Baja hasta el <code>MaterialButton</code> (paso 4.13) y cambia su <code>child</code>:</p>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/login_screen.dart — botón de Login</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>                //4.13 Botón de login
+                MaterialButton(
+                  minWidth: size.width,
+                  height: 50,
+                  color: Colors.pinkAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onPressed: _onLogin,
+<span class="hl-add">                  //5.9 Mostrar CircularProgressIndicator si está cargando, o el texto Login</span>
+<span class="hl-add">                  child: _isLoading</span>
+<span class="hl-add">                      ? const CircularProgressIndicator(color: Colors.white)</span>
+<span class="hl-add">                      : const Text(</span>
+<span class="hl-add">                          'Login',</span>
+<span class="hl-add">                          style: TextStyle(color: Colors.white),</span>
+<span class="hl-add">                        ),</span>
+                ),</code></pre>
+  </div>
+  <p>Es un <strong>operador ternario</strong> (como el que ya usaste en el ícono del ojito): <code>condición ? siEsVerdad : siEsFalso</code>.</p>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Permisos de red (Android)" data-min="4">
+  <h2>Permisos de red en Android</h2>
+  <span class="duration">⏱ 4 min</span>
+
+  <p>Si vas a probar en un <strong>emulador o celular Android</strong>, necesitas dos ajustes en <code>android/app/src/main/AndroidManifest.xml</code>. (Si solo pruebas en Chrome o iOS, puedes saltarte este paso, pero es buena idea dejarlo listo.)</p>
+  <div class="code-wrap">
+    <div class="code-title">android/app/src/main/AndroidManifest.xml</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>&lt;manifest xmlns:android="http://schemas.android.com/apk/res/android"&gt;
+<span class="hl-add">    &lt;!-- Permiso necesario para consumir tanto Firebase como nuestra API de Spring Boot --&gt;</span>
+<span class="hl-add">    &lt;uses-permission android:name="android.permission.INTERNET"/&gt;</span>
+
+<span class="hl-add">    &lt;!-- usesCleartextTraffic="true" permite peticiones HTTP locales (sin HTTPS) hacia Spring Boot --&gt;</span>
+    &lt;application
+        android:label="login_bear_animation_26_3_8sc"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+<span class="hl-add">        android:usesCleartextTraffic="true"&gt;</span></code></pre>
+  </div>
+  <table>
+    <tr><th>Ajuste</th><th>¿Por qué?</th></tr>
+    <tr><td><code>INTERNET</code></td><td>Sin este permiso, Android no deja que tu app salga a la red. Ni Firebase ni Spring Boot funcionarían.</td></tr>
+    <tr><td><code>usesCleartextTraffic="true"</code></td><td>Desde Android 9, las peticiones <code>http://</code> (sin la "s" de seguro) están bloqueadas. Nuestro Spring Boot local usa <code>http://</code>, así que lo permitimos <strong>solo para desarrollo</strong>.</td></tr>
+  </table>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="products_screen.dart: la petición HTTP" data-min="15">
+  <h2><code>products_screen.dart</code>: la petición HTTP y el JSON (pasos 6.1 – 6.2)</h2>
+  <span class="duration">⏱ 15 min</span>
+
+  <p>Ahora sí, el corazón del codelab: pedirle los productos a Spring Boot. Abre (o crea) <code>lib/screens/products_screen.dart</code>.</p>
+
+  <h3>Imports</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/products_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;</code></pre>
+  </div>
+  <ul>
+    <li><code>dart:convert</code>: trae <code>jsonDecode</code>, la función que convierte texto JSON en objetos de Dart.</li>
+    <li><code>as http</code>: le pone un "apellido" al paquete. Así escribimos <code>http.get(...)</code> y queda claro de dónde viene.</li>
+  </ul>
+
+  <h3>6.1 La URL base: el parámetro más importante</h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/products_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>class ProductsScreen extends StatelessWidget {
+  const ProductsScreen({super.key});
+
+  // 6.1 Parámetro clave: URL base de la API de Spring Boot (puerto 8090)
+  // - Web / iOS Simulator / macOS: usar http://localhost:8090
+  // - Emulador Android: cambiar localhost por 10.0.2.2 (http://10.0.2.2:8090)
+  // - Celular físico: usar la IP de tu computadora (ej. http://192.168.1.X:8090)
+  static const String baseUrl = 'http://localhost:8090';</code></pre>
+  </div>
+
+  <table>
+    <tr><th>¿Dónde corre tu app?</th><th>Valor de <code>baseUrl</code></th><th>¿Por qué?</th></tr>
+    <tr><td>Chrome (Web), Simulador iOS, macOS</td><td><code>http://localhost:8090</code></td><td>La app corre en la misma computadora que Spring Boot.</td></tr>
+    <tr><td>Emulador Android</td><td><code>http://10.0.2.2:8090</code></td><td>El emulador es una "computadora virtual". Para él, <code>localhost</code> es <strong>el propio emulador</strong>, no tu PC. <code>10.0.2.2</code> es la dirección especial que apunta a tu PC.</td></tr>
+    <tr><td>Celular físico (misma red Wi-Fi)</td><td><code>http://192.168.X.X:8090</code></td><td>Usa la IP local de tu computadora (en Mac: <em>Ajustes → Wi-Fi → Detalles</em>; en Windows: <code>ipconfig</code>).</td></tr>
+  </table>
+
+  <h3>6.2 La función <code>fetchProducts()</code></h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/products_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>  // 6.2 Función para pedir la lista de productos al endpoint GET /products
+  Future&lt;List&lt;dynamic&gt;&gt; fetchProducts() async {
+    final response = await http.get(Uri.parse('$baseUrl/products'));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Error al cargar productos de la API');
+    }
+  }</code></pre>
+  </div>
+
+  <h3>🔍 Desarmando la función línea por línea</h3>
+  <table>
+    <tr><th>Código</th><th>Explicación</th></tr>
+    <tr><td><code>Future&lt;List&lt;dynamic&gt;&gt;</code></td><td>"Prometo que <strong>en el futuro</strong> te daré una <strong>lista</strong> de elementos de <strong>cualquier tipo</strong>". <code>dynamic</code> significa que Dart no sabe de antemano qué hay adentro (lo sabremos al leer el JSON).</td></tr>
+    <tr><td><code>async</code></td><td>Porque dentro usamos <code>await</code>.</td></tr>
+    <tr><td><code>Uri.parse('$baseUrl/products')</code></td><td>Arma la URL completa: <code>http://localhost:8090/products</code>. El <code>$</code> inserta el valor de la variable dentro del texto. <code>Uri.parse</code> convierte ese texto en una dirección que <code>http</code> entiende.</td></tr>
+    <tr><td><code>await http.get(...)</code></td><td>Hace la petición <code>GET</code> (la misma que hiciste en el navegador / Postman) y <strong>espera</strong> la respuesta.</td></tr>
+    <tr><td><code>response.statusCode</code></td><td>El código de estado HTTP. <code>200</code> = OK. Otros comunes: <code>404</code> = no encontrado, <code>500</code> = error del servidor.</td></tr>
+    <tr><td><code>response.body</code></td><td>El cuerpo de la respuesta: el JSON, pero como <strong>texto plano</strong> (<code>String</code>).</td></tr>
+    <tr><td><code>jsonDecode(response.body)</code></td><td><strong>Parsea</strong> el texto y lo convierte en estructuras de Dart.</td></tr>
+    <tr><td><code>throw Exception(...)</code></td><td>Si el servidor no respondió 200, "lanzamos" un error. El <code>FutureBuilder</code> lo atrapará en el siguiente paso.</td></tr>
+  </table>
+
+  <h3>🧩 ¿Qué produce <code>jsonDecode</code>?</h3>
+  <p>Convierte cada símbolo del JSON a un tipo de Dart:</p>
+  <table>
+    <tr><th>En JSON</th><th>En Dart se convierte en</th><th>Cómo lo lees</th></tr>
+    <tr><td><code>[ ... ]</code> (arreglo)</td><td><code>List&lt;dynamic&gt;</code></td><td><code>products[0]</code>, <code>products.length</code></td></tr>
+    <tr><td><code>{ ... }</code> (objeto)</td><td><code>Map&lt;String, dynamic&gt;</code></td><td><code>product['name']</code></td></tr>
+    <tr><td><code>"Guayaba"</code></td><td><code>String</code></td><td>—</td></tr>
+    <tr><td><code>500</code> / <code>300.0</code></td><td><code>int</code> / <code>double</code></td><td>—</td></tr>
+    <tr><td><code>true</code></td><td><code>bool</code></td><td>—</td></tr>
+  </table>
+  <div class="code-wrap no-title">
+    <button class="copy-btn">Copiar</button>
+<pre><code>final products = jsonDecode(response.body);  <span class="cm">// List</span>
+final primero  = products[0];                <span class="cm">// Map</span>
+print(primero['name']);                      <span class="cm">// Guayaba</span>
+print(primero['category']['category']);      <span class="cm">// Frutas y verduras (objeto anidado)</span></code></pre>
+  </div>
+
+  <div class="callout warn">
+    <strong>⚠️ Error típico</strong>
+    Si escribes <code>product['Name']</code> o <code>product['nombre']</code> obtendrás <code>null</code>. La llave tiene que ser idéntica a la del JSON de Spring Boot: <code>'name'</code>.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="products_screen.dart: FutureBuilder" data-min="12">
+  <h2><code>products_screen.dart</code>: dibujar la respuesta con FutureBuilder (pasos 6.3 – 6.4)</h2>
+  <span class="duration">⏱ 12 min</span>
+
+  <p>Tenemos un problema: el método <code>build()</code> tiene que devolver un widget <strong>de inmediato</strong>, pero los productos llegarán "después". ¿Qué dibujamos mientras tanto? Para eso existe <code>FutureBuilder</code>.</p>
+
+  <h3>6.3 y 6.4: el método <code>build</code></h3>
+  <div class="code-wrap">
+    <div class="code-title">lib/screens/products_screen.dart</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Productos de Spring Boot')),
+      // 6.3 FutureBuilder: espera la respuesta de la API y dibuja el resultado
+      body: FutureBuilder&lt;List&lt;dynamic&gt;&gt;(
+        future: fetchProducts(),
+        builder: (context, snapshot) {
+          // Mientras responde el servidor, mostrar indicador de carga
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // Si hubo un error de conexión
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final products = snapshot.data ?? [];
+
+          // 6.4 Mostrar los elementos de la base de datos en una lista sencilla
+          return ListView.builder(
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return ListTile(
+                title: Text(product['name'].toString()),
+                subtitle: Text('Stock: ${product['stock']}'),
+                trailing: Text('\$${product['price']}'),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}</code></pre>
+  </div>
+
+  <h3>🎬 Cómo funciona <code>FutureBuilder</code></h3>
+  <p>Recibe dos cosas:</p>
+  <ul>
+    <li><code>future:</code> el "ticket" que va a vigilar → <code>fetchProducts()</code>.</li>
+    <li><code>builder:</code> una función que se ejecuta <strong>cada vez que cambia el estado</strong> del ticket y decide qué dibujar.</li>
+  </ul>
+  <p>El parámetro <code>snapshot</code> es una "foto" del estado actual del <code>Future</code>:</p>
+  <table>
+    <tr><th>Estado</th><th>Cómo lo detectas</th><th>Qué dibujamos</th></tr>
+    <tr><td>⏳ Esperando</td><td><code>snapshot.connectionState == ConnectionState.waiting</code></td><td><code>CircularProgressIndicator</code></td></tr>
+    <tr><td>❌ Falló</td><td><code>snapshot.hasError</code></td><td>Texto con <code>snapshot.error</code></td></tr>
+    <tr><td>✅ Llegaron los datos</td><td><code>snapshot.data</code> trae la lista</td><td><code>ListView.builder</code></td></tr>
+  </table>
+
+  <h3>Detalles finos</h3>
+  <ul>
+    <li><code>snapshot.data ?? []</code>: el operador <code>??</code> significa "si es <code>null</code>, usa esto otro". Si no llegó nada, usamos una lista vacía para no tronar.</li>
+    <li><code>ListView.builder</code>: construye solo los elementos visibles en pantalla. Ideal para listas largas.</li>
+    <li><code>itemCount: products.length</code>: cuántos elementos tiene la lista.</li>
+    <li><code>products[index]</code>: el producto número <code>index</code>, que es un <code>Map</code>.</li>
+    <li><code>'\$${product['price']}'</code>: <code>\$</code> imprime un signo de pesos literal; <code>${...}</code> inserta el valor del precio.</li>
+  </ul>
+
+  <h3>🔁 Recapitulando la asincronía completa</h3>
+  <ol>
+    <li>Se dibuja <code>ProductsScreen</code> y <code>FutureBuilder</code> llama a <code>fetchProducts()</code>.</li>
+    <li><code>fetchProducts()</code> devuelve un <code>Future</code> (ticket) de inmediato; <code>snapshot</code> está en <code>waiting</code> → se ve el circulito.</li>
+    <li>En segundo plano, <code>http.get</code> viaja a Spring Boot; Spring consulta PostgreSQL y responde JSON.</li>
+    <li><code>await</code> recibe la respuesta, <code>jsonDecode</code> la convierte en <code>List</code> y la función hace <code>return</code>.</li>
+    <li>El <code>Future</code> se completa → <code>FutureBuilder</code> vuelve a ejecutar <code>builder</code> → ahora con <code>snapshot.data</code> → se dibuja la lista.</li>
+  </ol>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="Ejecutar y probar" data-min="5">
+  <h2>Ejecuta y prueba el flujo completo</h2>
+  <span class="duration">⏱ 5 min</span>
+
+  <ol>
+    <li>Verifica que Spring Boot siga corriendo en IntelliJ (<code>Tomcat started on port 8090</code>).</li>
+    <li>Verifica que <code>baseUrl</code> en <code>products_screen.dart</code> corresponda a tu dispositivo (ver tabla del paso 6.1).</li>
+    <li>Ejecuta la app. Para la primera prueba recomendamos <strong>Chrome</strong>:</li>
+  </ol>
+  <div class="code-wrap no-title">
+    <button class="copy-btn">Copiar</button>
+<pre><code>flutter run -d chrome</code></pre>
+  </div>
+  <ol start="4">
+    <li>Escribe el correo y contraseña del usuario que creaste en Firebase Authentication.</li>
+    <li>Presiona <strong>Login</strong>.</li>
+  </ol>
+
+  <h3>Lo que deberías ver</h3>
+  <ul class="checklist">
+    <li>El botón muestra el <code>CircularProgressIndicator</code> ~2 segundos.</li>
+    <li>El osito celebra (<code>trigSuccess</code>) ~2 segundos.</li>
+    <li>La app cambia a "Productos de Spring Boot".</li>
+    <li>Aparece la lista: Guayaba, Mango, Manzana...</li>
+  </ul>
+
+  <div class="callout err">
+    <strong>😱 ¿Te salió esto en Chrome?</strong>
+    <code>Error: ClientException: Failed to fetch, uri=http://localhost:8090/products</code>
+    <br>¡No te preocupes! Es lo que vamos a resolver en el siguiente paso. Sigue leyendo 👉
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="🚩 Punto de control: CORS" data-min="10">
+  <h2>🚩 Punto de control: el error de CORS</h2>
+  <span class="duration">⏱ 10 min</span>
+
+  <p>Si ejecutaste en <strong>Chrome</strong>, lo más probable es que el Login haya funcionado perfecto, pero la pantalla de productos muestre:</p>
+  <div class="terminal-err">Error: ClientException: Failed to fetch, uri=http://localhost:8090/products</div>
+
+  <p>Lo curioso: <strong>en Postman y en el navegador sí funcionaba</strong>. ¿Qué pasó?</p>
+
+  <h3>🔎 Investiga: abre la consola de Chrome</h3>
+  <p>Presiona <code>F12</code> (o <code>Cmd + Option + J</code> en Mac) → pestaña <strong>Console</strong>. Verás algo así:</p>
+  <div class="terminal-err">Access to fetch at 'http://localhost:8090/products' from origin 'http://localhost:50697'
+has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present
+on the requested resource.</div>
+
+  <h3>🤔 ¿Qué es CORS?</h3>
+  <p><strong>CORS</strong> (<em>Cross-Origin Resource Sharing</em>, "Intercambio de Recursos entre Orígenes") es una regla de seguridad de <strong>los navegadores</strong>.</p>
+  <p>Un <strong>origen</strong> es la combinación de <code>protocolo + dominio + puerto</code>. Fíjate:</p>
+  <table>
+    <tr><th></th><th>Origen</th></tr>
+    <tr><td>Tu app Flutter Web</td><td><code>http://localhost:<strong>50697</strong></code> (el puerto cambia cada vez)</td></tr>
+    <tr><td>Tu API Spring Boot</td><td><code>http://localhost:<strong>8090</strong></code></td></tr>
+  </table>
+  <p>¡Son <strong>orígenes distintos</strong> porque el puerto es distinto! Por seguridad, el navegador no deja que una página lea datos de otro origen, <strong>a menos que el servidor dé permiso explícito</strong> con una cabecera (<em>header</em>) llamada <code>Access-Control-Allow-Origin</code>.</p>
+
+  <div class="callout tip">
+    <strong>🏢 Analogía: el edificio con guardia</strong>
+    Tu app (departamento 50697) quiere entrar al departamento 8090 por información. El guardia del edificio (el navegador) pregunta: "¿El del 8090 te autorizó?". Si el 8090 no dejó tu nombre en la lista de visitas (<code>Access-Control-Allow-Origin</code>), el guardia no te deja pasar, aunque el del 8090 sí te hubiera abierto.
+  </div>
+
+  <h3>¿Por qué en Postman sí funcionaba?</h3>
+  <ul>
+    <li><strong>Postman</strong> no es un navegador: no aplica CORS.</li>
+    <li>Al escribir la URL directo en la barra de Chrome, <strong>tú</strong> estás en el origen 8090; no hay cruce de orígenes.</li>
+    <li>En <strong>emulador Android o iOS</strong> tampoco verás este error: CORS solo existe en navegadores. Pero tu app Web <strong>sí</strong> lo necesita, y además es una práctica estándar configurarlo.</li>
+  </ul>
+
+  <div class="callout warn">
+    <strong>⚠️ Mismo mensaje, causas distintas</strong>
+    En Flutter, <code>Failed to fetch</code> aparece tanto si <strong>Spring Boot está apagado</strong> como si es un <strong>bloqueo de CORS</strong>. La consola de Chrome (<code>F12</code>) te dice cuál es: si menciona <code>CORS policy</code>, es CORS; si dice <code>ERR_CONNECTION_REFUSED</code>, el servidor está apagado.
+  </div>
+
+  <h3>✅ Solución: dar permiso desde Spring Boot</h3>
+  <p>El permiso lo da <strong>el backend</strong>, no Flutter. Abre <code>ProductController.java</code> y agrega la anotación <code>@CrossOrigin</code>:</p>
+  <div class="code-wrap">
+    <div class="code-title">web/controller/ProductController.java</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>@RestController
+@RequestMapping("/products")
+<span class="hl-add">@CrossOrigin(origins = "*")</span>
+@Tag(name = "Product", description = "Manage products in the store")
+public class ProductController {</code></pre>
+  </div>
+  <p>Haz lo mismo en <code>PurchaseController.java</code> si también vas a consumir compras:</p>
+  <div class="code-wrap">
+    <div class="code-title">web/controller/PurchaseController.java</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>@RestController
+@RequestMapping("/purchases")
+<span class="hl-add">@CrossOrigin(origins = "*")</span>
+public class PurchaseController {</code></pre>
+  </div>
+
+  <p><code>@CrossOrigin(origins = "*")</code> le dice a Spring: "a cada respuesta de este controlador, agrégale el header <code>Access-Control-Allow-Origin: *</code>". El <code>*</code> significa "cualquier origen puede leerme". El import ya viene incluido en <code>org.springframework.web.bind.annotation.*</code>.</p>
+
+  <h3>Alternativa: configuración global (opcional)</h3>
+  <p>Si tienes muchos controladores, en vez de anotar cada uno puedes crear una clase de configuración:</p>
+  <div class="code-wrap">
+    <div class="code-title">web/config/CorsConfig.java (opcional)</div>
+    <button class="copy-btn">Copiar</button>
+<pre><code>package mx.edu.tecdesoftware.market_backend_2026_3_a.web.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class CorsConfig implements WebMvcConfigurer {
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE");
+    }
+}</code></pre>
+  </div>
+
+  <div class="callout err">
+    <strong>🔒 En producción, no uses <code>*</code></strong>
+    <code>"*"</code> está bien para desarrollo y para clase. En una app real debes poner solo los orígenes permitidos, por ejemplo: <code>@CrossOrigin(origins = "https://mi-app.com")</code>.
+  </div>
+
+  <h3>Comprueba la solución</h3>
+  <ol>
+    <li><strong>Reinicia</strong> Spring Boot en IntelliJ (⏹ y luego ▶). Los cambios en Java no se aplican solos.</li>
+    <li>En Flutter, haz <em>Hot Restart</em> (<code>R</code> mayúscula en la terminal) o recarga la pestaña de Chrome.</li>
+    <li>Inicia sesión de nuevo. 🎉 ¡Ahora sí debes ver la lista de productos!</li>
+  </ol>
+</section>
+
+<!-- ===================================================== -->
+<section class="step" data-title="¡Felicidades!" data-min="3">
+  <h2>🎉 ¡Felicidades!</h2>
+  <span class="duration">⏱ 3 min</span>
+
+  <p>Conectaste una app de Flutter a Firebase Authentication <strong>y</strong> a tu propia API REST de Spring Boot. Repasemos los <strong>parámetros clave</strong> que siempre debes revisar al conectar un frontend con un backend:</p>
+
+  <table>
+    <tr><th>#</th><th>Parámetro</th><th>Dónde se configura</th></tr>
+    <tr><td>1</td><td>Host según el dispositivo (<code>localhost</code> / <code>10.0.2.2</code> / IP local)</td><td><code>products_screen.dart</code> → <code>baseUrl</code></td></tr>
+    <tr><td>2</td><td>Puerto y ruta del endpoint (<code>8090</code> + <code>/products</code>)</td><td><code>application-dev.properties</code> + <code>@RequestMapping</code></td></tr>
+    <tr><td>3</td><td>Permisos de red (<code>INTERNET</code> + <code>usesCleartextTraffic</code>)</td><td><code>AndroidManifest.xml</code></td></tr>
+    <tr><td>4</td><td>Nombres exactos de las llaves del JSON</td><td><code>Product.java</code> ↔ <code>product['name']</code></td></tr>
+    <tr><td>5</td><td>CORS (solo Web)</td><td><code>@CrossOrigin</code> en el controlador</td></tr>
+    <tr><td>6</td><td>Credenciales fuera de Git</td><td><code>.gitignore</code> (Flutter y Spring Boot)</td></tr>
+  </table>
+
+  <h3>Conceptos que dominaste</h3>
+  <ul class="checklist">
+    <li><code>Future</code>, <code>async</code> y <code>await</code></li>
+    <li><code>try / catch</code> para errores asíncronos</li>
+    <li><code>Navigator.push</code> vs. <code>pushReplacement</code> y por qué revisar <code>mounted</code></li>
+    <li><code>http.get</code>, <code>statusCode</code> y <code>jsonDecode</code></li>
+    <li><code>FutureBuilder</code> y sus estados</li>
+    <li>CORS: qué es, por qué aparece y cómo resolverlo</li>
+  </ul>
+
+  <h3>🚀 Retos para seguir practicando</h3>
+  <ol>
+    <li>Muestra también la categoría de cada producto: <code>product['category']['category']</code>.</li>
+    <li>Agrega un botón de <strong>Cerrar sesión</strong> que llame a <code>FirebaseAuth.instance.signOut()</code> y regrese al Login.</li>
+    <li>Cambia el texto de error por una pantalla amigable con un botón de <strong>Reintentar</strong>.</li>
+    <li>Consume <code>GET /purchases/all</code> en una nueva pantalla.</li>
+  </ol>
+</section>
+
+</main>
+
+<div class="nav-buttons">
+  <button id="prevBtn">← Anterior</button>
+  <span id="stepCounter"></span>
+  <button id="nextBtn">Siguiente →</button>
+</div>
+
+<script>
+(function () {
+  const steps = Array.from(document.querySelectorAll('section.step'));
+  const list = document.getElementById('stepList');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const counter = document.getElementById('stepCounter');
+  const fill = document.getElementById('progressFill');
+  const timeLeft = document.getElementById('timeLeft');
+  const sidebar = document.getElementById('sidebar');
+  const STORAGE_KEY = 'codelab_basico_progress';
+  let visited = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+  let current = 0;
+
+  // Construir barra lateral
+  steps.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.textContent = s.dataset.title;
+    li.addEventListener('click', () => { go(i); sidebar.classList.remove('open'); });
+    list.appendChild(li);
+  });
+  const items = Array.from(list.children);
+
+  function go(i) {
+    if (i < 0 || i >= steps.length) return;
+    visited.add(current);
+    current = i;
+    steps.forEach((s, k) => s.classList.toggle('active', k === i));
+    items.forEach((li, k) => {
+      li.classList.toggle('active', k === i);
+      li.classList.toggle('done', visited.has(k) && k !== i);
+    });
+    prevBtn.disabled = i === 0;
+    nextBtn.textContent = i === steps.length - 1 ? '¡Terminado! 🎉' : 'Siguiente →';
+    counter.textContent = 'Paso ' + (i + 1) + ' de ' + steps.length;
+    fill.style.width = ((i + 1) / steps.length * 100) + '%';
+    const remaining = steps.slice(i).reduce((acc, s) => acc + Number(s.dataset.min || 0), 0);
+    timeLeft.textContent = '⏱ ' + remaining + ' min restantes';
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(visited)));
+    history.replaceState(null, '', '#' + (i + 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  prevBtn.addEventListener('click', () => go(current - 1));
+  nextBtn.addEventListener('click', () => {
+    if (current === steps.length - 1) { visited.add(current); go(current); items[current].classList.add('done'); }
+    else go(current + 1);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowRight') go(current + 1);
+    if (e.key === 'ArrowLeft') go(current - 1);
+  });
+  document.getElementById('menuBtn').addEventListener('click', () => sidebar.classList.toggle('open'));
+
+  // Botones de copiar
+  document.querySelectorAll('.copy-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const code = btn.parentElement.querySelector('pre code').innerText;
+      const done = () => {
+        btn.textContent = '¡Copiado!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 1600);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(code).then(done);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = code; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  const start = parseInt(location.hash.replace('#', ''), 10);
+  go(!isNaN(start) ? Math.min(Math.max(start - 1, 0), steps.length - 1) : 0);
+})();
+</script>
+</body>
+</html>
+
